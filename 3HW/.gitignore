@@ -7,3 +7,5 @@ __pycache__/
 
 # Jupyter и временные файлы
 .ipynb_checkpoints/
+
+*.pth
