@@ -215,6 +215,11 @@ def main():
     import kagglehub
 
     root = kagglehub.dataset_download("akash2sharma/tiny-imagenet")
+    root = os.path.join(root, "tiny-imagenet-200")
+    print("DATASET ROOT:", root)
+    print("FILES:", os.listdir(root))
+
+
 
     classes = [
         'n01443537','n01629819','n01641577','n01644900','n01698640',
@@ -244,15 +249,62 @@ def main():
 
     trainer = Trainer(model)
 
-    history = []
+    history = {
+    "train_loss": [],
+    "train_acc": [],
+    "val_loss": [],
+    "val_acc": []
+    }
+
     for epoch in range(20):
         tr_l, tr_a = trainer.run_epoch(train_ld, True)
         va_l, va_a = trainer.run_epoch(val_ld, False)
-        history.append((tr_l, tr_a, va_l, va_a))
-        print(f"Epoch {epoch+1}: train acc={tr_a:.2f}, val acc={va_a:.2f}")
+
+        history["train_loss"].append(tr_l)
+        history["train_acc"].append(tr_a)
+        history["val_loss"].append(va_l)
+        history["val_acc"].append(va_a)
+
+        print(f"Epoch {epoch+1}: train acc={tr_a:.2f}%, val acc={va_a:.2f}%")
+
+    # ---------- plots ----------
+    import matplotlib.pyplot as plt
+    os.makedirs("plots", exist_ok=True)
+
+    epochs = range(1, len(history["train_acc"]) + 1)
+
+    plt.figure()
+    plt.plot(epochs, history["train_acc"], label="Train Acc")
+    plt.plot(epochs, history["val_acc"], label="Val Acc")
+    plt.xlabel("Epoch")
+    plt.ylabel("Accuracy (%)")
+    plt.legend()
+    plt.savefig("plots/accuracy.png")
+    plt.close()
+
+    plt.figure()
+    plt.plot(epochs, history["train_loss"], label="Train Loss")
+    plt.plot(epochs, history["val_loss"], label="Val Loss")
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+    plt.legend()
+    plt.savefig("plots/loss.png")
+    plt.close()
+
+    # ---------- table ----------
+    results = pd.DataFrame({
+        "Stage": ["Baseline"],
+        "Configuration": ["ResNet18 64→128→256"],
+        "Parameters": [format_parameters(count_parameters(model))],
+        "Train Accuracy": [f"{history['train_acc'][-1]:.2f}%"],
+        "Validation Accuracy": [f"{history['val_acc'][-1]:.2f}%"]
+    })
+
+    results.to_csv("results_baseline.csv", index=False)
 
     with open("results.json", "w") as f:
         json.dump(history, f, indent=2)
+
 
 
 if __name__ == "__main__":
